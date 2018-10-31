@@ -80,6 +80,7 @@ def main():
     parser.add_argument('--author', '-a', type=str, help='Your name as the author of the contract', default="anonnymous_author")
     parser.add_argument('--sender', '-s', type=str, help='Your name as the sender of the contract', default="anonnymous_sender")
     parser.add_argument('--delete', '-d', type=str, help='Smart contract name to delete')
+    parser.add_argument('--admin', action='store_true', help='Set author and sender to be the same')
     args = parser.parse_args()
 
     if args.publish:

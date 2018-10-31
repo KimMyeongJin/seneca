@@ -17,6 +17,7 @@ ALLOWED_AST_TYPES = {
     ast.Load,
     ast.arg,
     ast.Add,
+    ast.Mult,
     ast.Lambda,
     ast.Import,
     ast.ImportFrom,

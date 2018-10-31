@@ -26,7 +26,7 @@ class SenecaInterpreter:
 
     @classmethod
     def get_code_str(cls, fullname):
-        code_str = cls.r.hget('contracts_str', fullname)
+        code_str = cls.r.hget('contracts_meta', fullname)
         assert code_str, 'Cannot find original code string for module "{}" not found!'.format(fullname)
         return code_str
 
@@ -40,14 +40,14 @@ class SenecaInterpreter:
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
-            pipe.hset('contracts_str', fullname, code_str)
+            pipe.hset('contracts_meta', fullname, code_str)
         pipe.execute()
 
     @classmethod
     def remove_code(cls, fullname):
         pipe = cls.r.pipeline()
         pipe.hdel('contracts', fullname)
-        pipe.hdel('contracts_str', fullname)
+        pipe.hdel('contracts_meta', fullname)
         pipe.execute()
 
     @classmethod
