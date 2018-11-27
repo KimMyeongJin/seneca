@@ -33,7 +33,7 @@ class SenecaInterface(SenecaInterpreter):
         code_obj = self.compile_code(code_str, scope)
         return self.execute(code_obj, scope)
 
-    def publish_code_str(self, fullname, author, code_str, keep_original=False, scope={}):
+    def publish_code_str(self, fullname, author, code_str, keep_original=False):
         assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         with SenecaInterface(False) as interface:
             SenecaInterpreter.imports = {}

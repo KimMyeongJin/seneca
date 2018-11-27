@@ -68,7 +68,7 @@ def extract_prefix(s):
 
 '''
 Returns the representation of the complex type if it is not a primative.
-Otherwise, returns 
+Otherwise, returns
 '''
 
 
@@ -326,6 +326,8 @@ class RObject:
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
         self.key_type = key_type
 
+        print('RObject Created with concurrent_mode={}'.format(self.concurrent_mode))
+
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)
 
@@ -353,7 +355,6 @@ class RObject:
             v = value.rep()
 
         else:
-            print(type(value), self.value_type)
 
             # due to the naive nature of fixed point precision casting, we try to cast decimals into ints when there
             # is no loss of precision
