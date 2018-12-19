@@ -24,11 +24,11 @@ class Macros:
 
 
 class Phase:
-    EXEC_TIMEOUT = 14  # Number of seconds client will wait for other clients to finish execution phase
-    CR_TIMEOUT = 14  # Number of seconds client will wait for other clients to finish conflict resolution phase
-    BLOCK_TIMEOUT = 30  # Number of seconds a pending db will wait until it is at the top (first element) of pending_dbs
+    EXEC_TIMEOUT = 30  # Number of seconds client will wait for other clients to finish execution phase
+    CR_TIMEOUT = 30  # Number of seconds client will wait for other clients to finish conflict resolution phase
+    BLOCK_TIMEOUT = 40  # Number of seconds a pending db will wait until it is at the top (first element) of pending_dbs
     AVAIL_DB_TIMEOUT = 60  # How long the client will wait for a DB to become available when executing a SB
-    POLL_INTERVAL = 0.5  # Poll for Phase changes every POLL_INTERVAL seconds
+    POLL_INTERVAL = 1  # Poll for Phase changes every POLL_INTERVAL seconds
 
     @staticmethod
     def incr(db, key) -> int:
@@ -57,6 +57,7 @@ class SenecaClient(SenecaInterface):
         self.num_sb_builders = num_sbb
         self.concurrent_mode = concurrent_mode
         self.max_number_workers = NUM_CACHES
+        self.db_batch_offset = 0
 
         self.master_db = None  # A redis.StrictRedis instance
         self.active_db = None  # Set to a CRContext instance
@@ -78,12 +79,14 @@ class SenecaClient(SenecaInterface):
 
         self._setup_dbs()
 
+
     def _setup_dbs(self):
         self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
         for db_num in range(self.max_number_workers):
-            db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
+            db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+self.db_batch_offset+DB_OFFSET, password=self.password)
             cr_data = CRContext(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)
+        self.db_batch_offset = 0 if self.db_batch_offset > 0 else self.db_batch_offset + self.max_number_workers
 
     def flush_all(self):
         """ Flushes all pending/active/available dbs. This effectively 'resets' all databases except master."""
