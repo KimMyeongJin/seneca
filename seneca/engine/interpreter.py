@@ -167,6 +167,9 @@ class SenecaInterpreter:
         meta = json.loads(byte_str)
         return meta
 
+    def get_contracts(self):
+        return self.r.hkeys('contracts')
+
     def set_code(self, fullname, tree_obj, code_obj, code_str, author):
         pipe = self.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(tree_obj))
