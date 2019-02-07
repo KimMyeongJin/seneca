@@ -351,18 +351,18 @@ class RObject:
             info = BookKeeper.get_cr_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
-    def __getattribute__(self, attr):
-        if callable(object.__getattribute__(self, attr)):
-            if BookKeeper.has_info():
-                info = BookKeeper.get_info()
-                contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
-                if len(Seneca.callstack) > 0:
-                    if Seneca.callstack[-1] == info['rt'].get('sender'):
-                        contract_id = Seneca.callstack[-1]
-                if contract_id != 'dynamic_imports':
-                    self.contract_id = contract_id
-                self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
-        return object.__getattribute__(self, attr)
+    # def __getattribute__(self, attr):
+    #     if callable(object.__getattribute__(self, attr)):
+    #         # if BookKeeper.has_info():
+    #         info = Seneca.loaded['__main__']#BookKeeper.get_info()
+    #         contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
+    #         # if len(Seneca.callstack) > 0:
+    #         #     if Seneca.callstack[-1] == info['rt'].get('sender'):
+    #         #         contract_id = Seneca.callstack[-1]
+    #         if contract_id != 'dynamic_imports':
+    #             self.contract_id = contract_id
+    #         self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
+    #     return object.__getattribute__(self, attr)
 
     def encode_value(self, value, explicit=False):
         v = None

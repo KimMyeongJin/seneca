@@ -40,7 +40,7 @@ class ScopeParser:
         fn.__globals__.update(Seneca.loaded['__main__'])
         contract_name = fn.__module__.rsplit('.')[-1]
         Seneca.callstack.append(contract_name)
-        if fn.__globals__.get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
+        if fn.__globals__['rt'].get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
             Seneca.loaded['__main__']['__last_sender__'] = contract_name
@@ -55,7 +55,7 @@ class ScopeParser:
 
     def reset_scope(self, fn):
         old_sender = fn.__globals__['rt'].get('sender')
-        contract = fn.__globals__.get('__use_locals__')
+        contract = fn.__globals__['rt'].get('__use_locals__')
         if contract:
             if contract.split('.')[0] == old_sender or \
                 fn.__globals__['rt']['sender'] == old_sender:
@@ -342,15 +342,18 @@ class SenecaInterpreter:
 from seneca.contracts.currency import submit_stamps
 submit_stamps({})
 from {} import {}
-            '''.format(stamps_supplied, module[0], module[1]), '__main__', 'exec')
+result = {}()
+            '''.format(stamps_supplied, module[0], module[1], module[1]), '__main__', 'exec')
         else:
             import_obj = compile('''
 from {} import {}
-            '''.format(module[0], module[1]), '__main__', 'exec')
-        code_str = '''
 result = {}()
-        '''.format(module[1])
-        fn_call_obj = compile(code_str, '__main__', 'exec')
+            '''.format(module[0], module[1], module[1]), '__main__', 'exec')
+#         code_str = '''
+# result = {}()
+#         '''.format(module[1])
+#         fn_call_obj = compile(code_str, '__main__', 'exec')
+        fn_call_obj = None
 
         return fn_call_obj, import_obj, meta
 
@@ -370,35 +373,35 @@ result = {}()
         }
         contract_scope.update(Seneca.basic_scope)
 
-        if not self.bypass_currency:
-            _, _, c_meta = self.get_cached_code_obj(module_path, stamps)
-            currency_scope = {
-                'rt': {
-                    'author': c_meta['author'],
-                    'sender': sender,
-                    'origin': sender,
-                    'contract': Seneca.CURRENCY_NAME
-                },
-            }
-            currency_scope.update(Seneca.basic_scope)
-            Seneca.loaded['__main__'] = currency_scope
-            _obj = marshal.loads(self.r.hget('contracts_code', Seneca.CURRENCY_NAME))
-            exec(_obj, currency_scope)  # rebuilds RObjects for currency contract
+        # if not self.bypass_currency:
+        #     _, _, c_meta = self.get_cached_code_obj(module_path, stamps)
+        #     currency_scope = {
+        #         'rt': {
+        #             'author': c_meta['author'],
+        #             'sender': sender,
+        #             'origin': sender,
+        #             'contract': Seneca.CURRENCY_NAME
+        #         },
+        #     }
+        #     currency_scope.update(Seneca.basic_scope)
+        #     Seneca.loaded['__main__'] = currency_scope
+        #     _obj = marshal.loads(self.r.hget('contracts_code', Seneca.CURRENCY_NAME))
+        #     exec(_obj, currency_scope)  # rebuilds RObjects for currency contract
 
-        Seneca.loaded['__main__'] = contract_scope
-        _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
-        exec(_obj, contract_scope)  # rebuilds RObjects
-        exec(import_obj, contract_scope)  # run cached imports and submits stamps if necessary
+
+        # _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
+        # exec(_obj, contract_scope)  # rebuilds RObjects
+        # exec(import_obj, contract_scope)  # run cached imports and submits stamps if necessary
         contract_scope['rt']['contract'] = contract_name
-
-        contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
+        contract_scope['rt']['__use_locals__'] = '.'.join(module_path.split('.')[-2:])
+        Seneca.loaded['__main__'] = copy.deepcopy(contract_scope)
 
         if not self.bypass_currency:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
 
             try:
-                exec(fn_call_obj, contract_scope)  # Actually execute the function
+                exec(import_obj, contract_scope)  # Actually execute the function
             except Exception as e:
                 raise e
             finally:
@@ -406,7 +409,7 @@ result = {}()
 
             stamps -= self.tracer.get_stamp_used()
         else:
-            exec(fn_call_obj, contract_scope)
+            exec(import_obj, contract_scope)
             stamps = 0
         return {
             'status': 'success',
