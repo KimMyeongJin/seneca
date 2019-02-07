@@ -21,9 +21,9 @@ from seneca.contracts.currency import mint
 mint({}, {})
 """
 
-CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
+CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
 NUM_WALLETS = 10 ** 5
-SEED_AMOUNT = 10 ** 6
+SEED_AMOUNT = 10 ** 10
 PERSON_A = 'conflictor_a'
 PERSON_B = 'conflictor_b'
 
@@ -35,7 +35,7 @@ class MockContract:
 
 def setup():
     # overwrite_logger_level(0)
-    with SenecaInterface(False) as interface:
+    with SenecaInterface(False, bypass_currency=True) as interface:
         interface.r.flushall()
 
         # Store all smart contracts in CONTRACTS_TO_STORE
@@ -52,10 +52,10 @@ def setup():
         print("Minting {} wallets...".format(NUM_WALLETS))
         for i in range(NUM_WALLETS):
             interface.execute_function(module_path='seneca.contracts.currency.mint',
-                                       sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT, stamps=1000)
+                                       sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT, stamps=0)
         for w in (PERSON_A, PERSON_B):
             interface.execute_function(module_path='seneca.contracts.currency.mint',
-                                       sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT, stamps=1000)
+                                       sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT, stamps=0)
         print("Finished minting wallet in {} seconds".format(round(time.time()-start, 2)))
         print("----------------------")
 
@@ -75,7 +75,7 @@ def test_baseline(num_contracts: int=30000):
             amount = 1
             sender, receiver = random.sample(range(NUM_WALLETS), 2)
             interface.execute_function(module_path='seneca.contracts.currency.transfer',
-                                       sender=str(sender), to=str(receiver), amount=amount, stamps=1000)
+                                       sender=str(sender), to=str(receiver), amount=amount, stamps=10000)
     dur = time.time()-start
     print("Finished running baseline contracts in {} seconds ".format(round(dur, 2)))
     print("Baseline TPS: {}".format(num_contracts/dur))
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     # Now for the real deal
 
 # class TestSenecaClient(TestCase):
-#     CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
+#     CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
 #
 #     def setUp(self):
 #         overwrite_logger_level(0)

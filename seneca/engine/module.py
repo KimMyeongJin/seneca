@@ -16,6 +16,7 @@ class SenecaFinder(MetaPathFinder):
         else:
             name = fullname
         for entry in path:
+
             if isdir(join(entry, name)):
                 # this module has child modules
                 filename = join(entry, name, "__init__.py")
