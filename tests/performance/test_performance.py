@@ -22,8 +22,9 @@ mint({}, {})
 """
 
 CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
-NUM_WALLETS = 10 ** 5
-SEED_AMOUNT = 10 ** 10
+# NUM_WALLETS = 10 ** 5
+NUM_WALLETS = 10 ** 2
+SEED_AMOUNT = 10 ** 6
 PERSON_A = 'conflictor_a'
 PERSON_B = 'conflictor_b'
 
@@ -52,10 +53,10 @@ def setup():
         print("Minting {} wallets...".format(NUM_WALLETS))
         for i in range(NUM_WALLETS):
             interface.execute_function(module_path='seneca.contracts.currency.mint',
-                                       sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT, stamps=0)
+                                       sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT, stamps=1000)
         for w in (PERSON_A, PERSON_B):
             interface.execute_function(module_path='seneca.contracts.currency.mint',
-                                       sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT, stamps=0)
+                                       sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT, stamps=1000)
         print("Finished minting wallet in {} seconds".format(round(time.time()-start, 2)))
         print("----------------------")
 
@@ -70,18 +71,24 @@ def test_baseline(num_contracts: int=30000):
     start = time.time()
     print(" ----- BASELINE ------")
     print("Running {} contracts with random addresses...".format(num_contracts))
-    with SenecaInterface(False) as interface:
+    with SenecaInterface(False,  bypass_currency=True) as interface:
         for i in range(num_contracts):
             amount = 1
             sender, receiver = random.sample(range(NUM_WALLETS), 2)
             interface.execute_function(module_path='seneca.contracts.currency.transfer',
-                                       sender=str(sender), to=str(receiver), amount=amount, stamps=10000)
+                                       sender=str(sender), to=str(receiver), amount=amount, stamps=1000)
     dur = time.time()-start
     print("Finished running baseline contracts in {} seconds ".format(round(dur, 2)))
     print("Baseline TPS: {}".format(num_contracts/dur))
     print("----------------------")
 
 
+def test_cr(num_contracts: int=30000):
+    raise NotImplementedError()
+
+
 if __name__ == '__main__':
     setup()
+
+    # First, we test baseline
     test_baseline()
