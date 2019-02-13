@@ -43,10 +43,11 @@ class ScopeParser:
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
             Seneca.loaded['__main__']['__last_sender__'] = contract_name
+            Seneca.loaded['__main__']['__rt__'] = fn.__globals__['rt']
         else:
+            fn.__globals__['rt'] = Seneca.loaded['__main__']['__rt__']
             if not Seneca.loaded['__main__'].get('__last_sender__') == contract_name:
-                if Seneca.loaded['__main__'].get('__last_sender__'):
-                    fn.__globals__['rt']['sender'] = Seneca.loaded['__main__']['__last_sender__']
+                fn.__globals__['rt']['sender'] = Seneca.loaded['__main__']['__last_sender__']
                 Seneca.loaded['__main__']['__last_sender__'] = contract_name
             fn.__globals__['rt']['contract'] = contract_name
         BookKeeper.set_info(rt=fn.__globals__['rt'])
@@ -391,11 +392,9 @@ result = {}()
         contract_scope['rt']['contract'] = contract_name
 
         contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
-
         if not self.bypass_currency:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
-
             try:
                 exec(fn_call_obj, contract_scope)  # Actually execute the function
             except Exception as e:

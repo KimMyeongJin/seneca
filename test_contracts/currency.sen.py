@@ -42,23 +42,23 @@ def balance_of(wallet_id):
 
 @export
 def transfer(to, amount):
-    # print("transfering from {} to {} with amount {}".format(rt['sender'], to, amount))
-    balances[rt['sender']] -= amount
+    # print("transfering from {} to {} with amount {}".format(rt['origin'], to, amount))
+    balances[rt['origin']] -= amount
     balances[to] += amount
-    sender_balance = balances[rt['sender']]
+    sender_balance = balances[rt['origin']]
 
     assert sender_balance >= 0, "Sender balance must be non-negative!!!"
 
 @export
 def approve(spender, amount):
-    allowed[rt['sender']][spender] = amount
+    allowed[rt['origin']][spender] = amount
 
 @export
-def transfer_from(_from, to, amount):
-    assert allowed[_from][rt['sender']] >= amount
-    assert balances[_from] >= amount
-    allowed[_from][rt['sender']] -= amount
-    balances[_from] -= amount
+def transfer_from(to, amount):
+    assert allowed[rt['origin']][to] >= amount, 'Not approved'
+    assert balances[rt['origin']] >= amount, 'Not enough balance'
+    allowed[rt['origin']][to] -= amount
+    balances[rt['origin']] -= amount
     balances[to] += amount
 
 @export
@@ -68,6 +68,6 @@ def allowance(approver, spender):
 @export
 def mint(to, amount):
     # print("minting {} to wallet {}".format(amount, to))
-    assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
+    assert rt['origin'] == rt['author'], 'Only the original contract author can mint!'
 
     balances[to] += amount

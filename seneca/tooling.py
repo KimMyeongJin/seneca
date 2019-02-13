@@ -34,7 +34,8 @@ class SenecaFunction:
         self.module_path = module_path
         self.kwargs = kwargs
         self.defaults = {
-            'sender': default_sender
+            'sender': default_sender,
+            'origin': default_sender
         }
         self.driver = driver
 
