@@ -71,6 +71,10 @@ class DataTypeProperties:
         return Parser.executor.driver
 
     @property
+    def database(self):
+        return Parser.executor.driver
+
+    @property
     def rt(self):
         return Parser.parser_scope['rt']
 
@@ -116,7 +120,6 @@ class DataType(Encoder, DataTypeProperties):
 
     def __init__(self, resource, default_value=None, placeholder=False, *args, **kwargs):
         self.resource = resource
-        self.database = self.driver
         self.contract_name = self.rt['contract']
         self.data = None
         self.access_mode = READ_WRITE_MODE
