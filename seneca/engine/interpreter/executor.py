@@ -98,7 +98,6 @@ class Executor:
             'methods': methods.get(contract_name, {}),
         }))
 
-
     @staticmethod
     def compile(contract_name, code_str, scope={}):
         Parser.reset()
@@ -204,6 +203,7 @@ class Executor:
             finally:
                 # NOTE: Stamp submission is separated from the assertion and execution
                 # because we still want to subtract stamps if we run out of stamps.
+                print("\n\n\n ohhhhhh shit son why am i here \n\n\n")
                 self.tracer.stop()
                 Parser.parser_scope['rt']['contract'] = 'currency'
                 exec(Plugins.submit_stamps(), Parser.parser_scope)
