@@ -12,6 +12,9 @@ from seneca.engine.interpreter.driver import Driver
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.conflict_resolution import LedisProxy
 
+from seneca.libs.logger import get_logger
+log = get_logger("Executor")
+
 
 class Executor:
 
@@ -203,7 +206,7 @@ class Executor:
             finally:
                 # NOTE: Stamp submission is separated from the assertion and execution
                 # because we still want to subtract stamps if we run out of stamps.
-                print("\n\n\n ohhhhhh shit son why am i here \n\n\n")
+                log.critical("\n\n\n ohhhhhh shit son why am i here \n\n\n")
                 self.tracer.stop()
                 Parser.parser_scope['rt']['contract'] = 'currency'
                 exec(Plugins.submit_stamps(), Parser.parser_scope)
@@ -211,6 +214,7 @@ class Executor:
                 if error:
                     raise error
         else:
+            log.critical("\n\n\n metering is not enabled \n\n\n")
             try:
                 exec(code_obj, Scope.scope)
             except Exception as e:
