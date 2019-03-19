@@ -69,10 +69,10 @@ class Executor:
                 continue
             with open(join(self.path, name+'.sen.py')) as f:
                 code_str = f.read()
-                code_obj, resources, methods = self.compile(name, code_str, {'ast': None, '__system__': True, '__executor__': self})
+                _, resources, methods = self.compile(name, code_str, {'ast': None, '__system__': True, '__executor__': self})
+
             self.set_contract(name, **{
                 'code_str': code_str,
-                'code_obj': code_obj,
                 'author': self.author,
                 'resources': resources,
                 'methods': methods,
@@ -82,17 +82,17 @@ class Executor:
     def get_contract(self, contract_name):
         contract = json.loads(self.driver.hget('contracts', contract_name).decode())
         contract['code_str'] = b64decode(contract['code_str']).decode()
-        contract['code_obj'] = marshal.loads(b64decode(contract['code_obj']))
+        Parser.parser_scope['__system__'] = True
+        contract['code_obj'], _, _ = self.compile(contract_name, contract['code_str'])
         return contract
 
-    def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
+    def set_contract(self, contract_name, code_str, author, resources, methods, driver=None, override=False):
         if not driver:
             driver = self.driver
         if not override:
             assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
         driver.hset('contracts', contract_name, json.dumps({
             'code_str': b64encode(code_str.encode()),
-            'code_obj': b64encode(marshal.dumps(code_obj)),
             'author': author,
             'resources': resources.get(contract_name, {}),
             'methods': methods.get(contract_name, {}),
@@ -153,11 +153,7 @@ class Executor:
         self.compile('__main__', code_str, scope)
 
     def get_resource(self, contract_name, resource_name):
-        meta = self.get_contract(contract_name)
-        try:
-            exec(meta['code_obj'], Parser.parser_scope)
-        except:
-            pass
+        self.get_contract(contract_name)
         resource = Parser.parser_scope.get(resource_name)
         resource.contract_name = contract_name
         if not Parser.parser_scope['imports'].get(resource_name):
@@ -177,19 +173,20 @@ class Executor:
                 'contract': contract_name,
                 'concurrency': self.concurrency,
                 'metering': self.metering
-            },
-            '__stamps__': stamps,
-            '__kwargs__': kwargs,
-            '__tracer__': self.tracer,
-            '__safe_execution__': True
+            }
         })
         Parser.parser_scope.update(Parser.basic_scope)
         current_executor = Parser.executor
         code_obj, author = self.get_contract_func(contract_name, func_name)
-        Parser.parser_scope['__executor__'] = self
         Parser.parser_scope['rt']['author'] = author
-        Parser.parser_scope['callstack'] = []
-
+        Parser.parser_scope.update({
+            'callstack': [],
+            '__stamps__': stamps,
+            '__kwargs__': kwargs,
+            '__executor__': self,
+            '__tracer__': self.tracer,
+            '__safe_execution__': True
+        })
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 
@@ -237,6 +234,10 @@ class Executor:
         Parser.parser_scope['rt']['contract'] = contract_name
         Parser.parser_scope['rt']['sender'] = sender
         Parser.parser_scope['__seed__'] = False
+        for resource_name in Parser.parser_scope['resources'].get(contract_name, {}):
+            if not Parser.parser_scope['imports'].get(resource_name):
+                Parser.parser_scope['imports'][resource_name] = set()
+            Parser.parser_scope['imports'][resource_name].add(contract_name)
         self.execute(contract['code_obj'], module.__dict__)
         return module
 

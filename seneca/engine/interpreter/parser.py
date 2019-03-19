@@ -23,7 +23,7 @@ class Parser:
         'namespace': defaultdict(dict),
         'exports': {},
         'imports': {},
-        'resources': {},
+        'resources': defaultdict(dict),
         'methods': defaultdict(dict),
         'protected': defaultdict(set)
     }

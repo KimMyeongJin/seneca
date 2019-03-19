@@ -2,10 +2,9 @@
 def submit_contract(contract_name, code_str):
     __executor__.concurrency = rt['concurrency']
     __executor__.metering = rt['metering']
-    code_obj, resources, methods = __executor__.compile(contract_name, code_str)
+    _, resources, methods = __executor__.compile(contract_name, code_str)
     contract = {
         'code_str': code_str,
-        'code_obj': code_obj,
         'author': rt['origin'],
         'resources': resources,
         'methods': methods

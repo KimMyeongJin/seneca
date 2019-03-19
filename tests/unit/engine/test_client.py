@@ -214,7 +214,6 @@ class TestSenecaClient(TestExecutor):
         code_obj, resources, methods = self.ex.compile('test', TEST_CONTRACT)
         contract_str = json.dumps({
             'code_str': b64encode(TEST_CONTRACT.encode()),
-            'code_obj': b64encode(marshal.dumps(code_obj)),
             'author': "anonymoose",
             'resources': resources.get('test', {}),
             'methods': methods.get('test', {}),
@@ -244,7 +243,6 @@ class TestSenecaClient(TestExecutor):
         code_obj, resources, methods = self.ex.compile('test', TEST_CONTRACT)
         contract_str = json.dumps({
             'code_str': b64encode(TEST_CONTRACT.encode()),
-            'code_obj': b64encode(marshal.dumps(code_obj)),
             'author': "anonymoose",
             'resources': resources.get('test', {}),
             'methods': methods.get('test', {}),
@@ -277,7 +275,6 @@ class TestSenecaClient(TestExecutor):
         code_obj, resources, methods = self.ex.compile('test', TEST_CONTRACT)
         contract_str = json.dumps({
             'code_str': b64encode(TEST_CONTRACT.encode()),
-            'code_obj': b64encode(marshal.dumps(code_obj)),
             'author': "anonymoose",
             'resources': resources.get('test', {}),
             'methods': methods.get('test', {}),

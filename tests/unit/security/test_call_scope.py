@@ -35,6 +35,7 @@ def call_here():
 
 AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 
+
 class TestCallScope(TestExecutor):
 
     def test_call_scope(self):
