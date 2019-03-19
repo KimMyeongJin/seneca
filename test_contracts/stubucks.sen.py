@@ -1,4 +1,5 @@
-from seneca.libs.datatypes import Hash
+from seneca.libs.storage.datatypes import Hash
+from seneca.contracts.currency import mint
 
 balances = Hash('balances', default_value=0)
 custodials = Hash('custodials', default_value=0)
@@ -6,6 +7,8 @@ custodials = Hash('custodials', default_value=0)
 @seed
 def seed():
     balances['435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa'] = 1000000
+    # print('seeding', balances.key, '435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa',
+    #       balances['435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa'])
 
 @export
 def transfer(to, amount):
@@ -39,3 +42,10 @@ def get_balance(account):
 @export
 def get_custodial(owner, spender):
     return custodials[owner][spender]
+
+@export
+def mint(to, amount):
+    # print('xxx: minting', balances.key, to, balances[to])
+    # print("multiply-minting {} to wallet {} (originally {})".format(amount, to, balances[to]))
+    balances[to] *= amount
+    # print(balances[to], amount)

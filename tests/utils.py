@@ -5,6 +5,11 @@ from seneca.engine.interpreter.executor import Executor
 from seneca.engine.interpreter.parser import Parser
 from seneca.libs.storage.table import Table
 import ledis, pickle
+from collections import defaultdict
+from seneca.libs.metering.resource import set_resource_limits
+from seneca.engine.interpreter.scope import Export, Seed, Function
+from seneca.libs.math.decimal import to_decimal
+from seneca.constants.whitelists import SAFE_BUILTINS
 
 
 class TestCaseHeader(TestCase):
@@ -25,16 +30,13 @@ class TestExecutor(TestCaseHeader):
 
     @classmethod
     def reset(cls, metering=False, concurrency=False):
+        # cls.fresh()
         cls.r.flushall()
         cls.ex = Executor(metering=metering, concurrency=concurrency)
 
     @classmethod
     def flush(cls):
         cls.r.flushall()
-    #
-    # @classmethod
-    # def tearDownClass(cls):
-    #     Parser.initialized = False
 
 
 class MockExecutor:

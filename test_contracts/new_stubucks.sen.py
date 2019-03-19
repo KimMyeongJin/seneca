@@ -31,3 +31,7 @@ def spend_custodial(_from, amount, to):
     assert custodials[_from][rt['sender']] >= amount
     balances[to] += amount
     custodials[_from][rt['sender']] -= amount
+
+@export
+def mint(to, amount):
+    balances[to] *= amount

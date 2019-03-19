@@ -1,4 +1,5 @@
 import copy
+from seneca.constants.config import READ_WRITE_MODE
 
 
 class Scope:
@@ -34,6 +35,12 @@ class Scope:
 
         fn.__globals__['rt'] = self.scope['rt']
 
+        for resource_name in self.scope['resources'].get(contract_name, {}):
+            if fn.__globals__.get(resource_name) is not None:
+                resource = fn.__globals__[resource_name]
+                resource.access_mode = READ_WRITE_MODE
+                self.scope['namespace'][contract_name][resource_name] = resource
+
         return args, kwargs
 
     def reset_scope(self):
@@ -47,24 +54,34 @@ class Scope:
 # Applies to Private, Export, and Seed functions
 class Function(Scope):
     def __call__(self, fn):
-
         def _fn(*args, **kwargs):
             contract_name = self.scope['rt']['contract']
-            if self.scope['namespace'].get(contract_name, {}).get(fn.__name__):
-                new_fn = self.scope['namespace'][contract_name][fn.__name__]
-            else:
-                new_fn = fn
-            args, kwargs = self.set_scope(fn, args, kwargs)
+            new_fn = self._set_functions(fn, contract_name)
+            self._set_resources(new_fn, contract_name)
+            args, kwargs = self.set_scope(new_fn, args, kwargs)
             res = new_fn(*args, **kwargs)
             self.reset_scope()
             return res
 
         contract_name = self.scope['rt']['contract']
         _fn.__name__ = fn.__name__
+        _fn.__module__ = contract_name
         fn.__module__ = contract_name
         self.scope['namespace'][contract_name][fn.__name__] = fn
         self.scope['methods'][contract_name][fn.__name__] = fn.__code__.co_varnames
         return _fn
+
+    def _set_functions(self, fn, contract_name):
+        if self.scope['namespace'].get(contract_name, {}).get(fn.__name__):
+            new_fn = self.scope['namespace'][contract_name][fn.__name__]
+        else:
+            new_fn = fn
+        return new_fn
+
+    def _set_resources(self, fn, contract_name):
+        for resource_name, resource in self.scope['namespace'].get(contract_name, {}).items():
+            if not resource.__class__.__name__ == 'function':
+                fn.__globals__[resource_name] = resource
 
 
 # Only used during AST parsing
@@ -89,4 +106,3 @@ class Seed(Scope):
                     fn()
             else:
                 fn()
-

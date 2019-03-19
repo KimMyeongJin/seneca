@@ -6,7 +6,6 @@ from seneca.libs.metering.resource import set_resource_limits
 from collections import defaultdict
 import ast, copy
 from seneca.constants.config import *
-from seneca.constants.whitelists import ALLOWED_DATA_TYPES
 
 
 class Parser:

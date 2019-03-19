@@ -10,7 +10,7 @@ class SenecaFinder(MetaPathFinder):
 
     def find_spec(self, fullname, path, target=None):
         if path is None or path == "":
-            path = [os.getcwd()] # top level import --
+            path = [os.getcwd()]  # top level import --
         if fullname.startswith(SENECA_SC_PATH):
             return None
         if "." in fullname:

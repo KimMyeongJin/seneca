@@ -106,6 +106,14 @@ v = __builtins__['__import__']('sys')
 __tracer__.set_stamp(1000)
             """, scope={'__tracer__': Tracer()})
 
+    def test_executor(self):
+        with self.assertRaises(CompilationException) as context:
+            self.ex.execute_code_str("""
+@seed
+def start():
+    print(__executor__)
+            """)
+
     def test_import(self):
         with self.assertRaises(CompilationException) as context:
             self.ex.execute_code_str("""

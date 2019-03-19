@@ -51,8 +51,7 @@ class Executor:
     def reset_syspath(self):
         if not isinstance(sys.meta_path[-1], LedisFinder):
             self.old_sys_path = sys.meta_path
-            #self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), LedisFinder()]
-            # self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
+            # self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), LedisFinder()]
             self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
 
             sys.meta_path = self.new_sys_path
@@ -192,11 +191,7 @@ class Executor:
         Parser.parser_scope.update(Parser.basic_scope)
         current_executor = Parser.executor
         code_obj, author = self.get_contract_func(contract_name, func_name)
-        if contract_name in ('smart_contract', ):
-            Parser.parser_scope['__executor__'] = self
-        else:
-            if Parser.parser_scope.get('__executor__'):
-                del Parser.parser_scope['__executor__']
+        Parser.parser_scope['__executor__'] = self
         Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
 
