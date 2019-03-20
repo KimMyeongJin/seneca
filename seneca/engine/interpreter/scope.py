@@ -43,7 +43,7 @@ class Scope:
                 resource = fn.__globals__[resource_name]
                 resource.access_mode = READ_WRITE_MODE
                 self.scope['namespace'][contract_name][resource_name] = resource
-                log.notice('Resource {} in {} is being saved as {}'.format(resource_name, contract_name, resource))
+                log.notice('Resource {} in {} is being saved as {}'.format(resource_name, contract_name, resource.key))
 
         return args, kwargs
 
