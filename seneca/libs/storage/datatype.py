@@ -87,6 +87,8 @@ class DataTypeProperties:
     def key(self):
         if len(self.callstack) == 0 or self.resource.split(DELIMITER)[0] in Parser.parser_scope.get('imports', {}):
             contract_name = self.contract_name
+        # elif self.actual_contract:
+        #     contract_name = self.actual_contract
         else:
             contract_name = self.callstack[-1][0]
         return DELIMITER.join([self.__class__.__name__, contract_name, self.resource])
@@ -119,6 +121,7 @@ class DataType(Encoder, DataTypeProperties):
         self.resource = resource
         self.contract_name = self.rt['contract']
         self.data = None
+        self.actual_contract = None
         self.access_mode = READ_WRITE_MODE
         if default_value is not None:
             self.default_value[self.contract_name] = default_value

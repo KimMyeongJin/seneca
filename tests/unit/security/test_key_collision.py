@@ -14,7 +14,7 @@ from seneca.libs.storage.datatypes import Hash
 my_breads = Hash('my_breads')
 
 @seed
-def initialize():
+def initialize_a():
     my_breads['rye'] = 15.4
 
 @export
@@ -32,7 +32,7 @@ from seneca.libs.storage.datatypes import Hash
 my_breads = Hash('my_breads')
 
 @seed
-def initialize():
+def initialize_b():
     my_breads['rye'] = 22.2
 
 @export
@@ -50,7 +50,7 @@ from seneca.contracts.restaurant_b import my_breads as b_breads
 c_breads = Hash('my_breads')
 
 @seed
-def initialize():
+def initialize_c():
     c_breads['rye'] = 11.7
     
 def this_bread(bread):

@@ -2,12 +2,11 @@ import copy
 from seneca.constants.config import READ_WRITE_MODE
 from seneca.libs.logger import get_logger
 
-log = get_logger(__name__)
-
 
 class Scope:
 
     scope = {}
+    log = get_logger(__name__)
 
     def set_scope(self, fn, args, kwargs):
 
@@ -38,13 +37,6 @@ class Scope:
 
         fn.__globals__['rt'] = self.scope['rt']
 
-        for resource_name in self.scope['resources'].get(contract_name, {}):
-            if fn.__globals__.get(resource_name) is not None:
-                resource = fn.__globals__[resource_name]
-                resource.access_mode = READ_WRITE_MODE
-                self.scope['namespace'][contract_name][resource_name] = resource
-                log.notice('Resource {} in {} is being saved as {}'.format(resource_name, contract_name, resource.key))
-
         return args, kwargs
 
     def reset_scope(self):
@@ -59,10 +51,8 @@ class Scope:
 class Function(Scope):
     def __call__(self, fn):
         def _fn(*args, **kwargs):
-            log.critical('>>>>>')
             new_fn = self._set_functions(fn)
             self._set_resources(new_fn)
-            log.critical('<<<<<')
             args, kwargs = self.set_scope(new_fn, args, kwargs)
             res = new_fn(*args, **kwargs)
             self.reset_scope()
@@ -74,6 +64,17 @@ class Function(Scope):
         fn.__module__ = contract_name
         self.scope['namespace'][contract_name][fn.__name__] = fn
         self.scope['methods'][contract_name][fn.__name__] = fn.__code__.co_varnames
+
+        for resource_name in self.scope['resources'].get(contract_name, {}):
+            if fn.__globals__.get(resource_name) is not None:
+                resource = fn.__globals__[resource_name]
+                if resource.__class__.__name__ != 'function':
+                    resource.access_mode = READ_WRITE_MODE
+                    if not self.scope['namespace'][contract_name].get(resource_name):
+                        self.scope['namespace'][contract_name][resource_name] = resource
+                        Scope.log.notice('Resource {} in {} is being saved as {} (contract={})'.format(resource_name, contract_name,
+                                                                                    resource.key, resource.contract_name))
+
         return _fn
 
     def _set_functions(self, fn):
@@ -82,14 +83,14 @@ class Function(Scope):
             new_fn = self.scope['namespace'][contract_name][fn.__name__]
         else:
             new_fn = fn
-        log.notice('Function {} in {} is being set as {}'.format(new_fn.__name__, contract_name, new_fn))
+        Scope.log.notice('Function {} in {} is being set with one from {}'.format(new_fn.__name__, contract_name, new_fn.__module__))
         return new_fn
 
     def _set_resources(self, fn):
-        contract_name = self.scope['rt']['contract']
+        contract_name = fn.__module__
         for resource_name, resource in self.scope['namespace'].get(contract_name, {}).items():
-            if not resource.__class__.__name__ == 'function':
-                log.notice('Resource {} in {} is being set as {}'.format(resource_name, contract_name, resource.key))
+            if resource.__class__.__name__ != 'function':
+                Scope.log.info('Resource {} in {} is being set as {}'.format(resource_name, fn.__module__, resource.key))
                 fn.__globals__[resource_name] = resource
 
 
@@ -115,3 +116,4 @@ class Seed(Scope):
                     fn()
             else:
                 fn()
+

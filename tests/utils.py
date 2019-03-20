@@ -30,7 +30,6 @@ class TestExecutor(TestCaseHeader):
 
     @classmethod
     def reset(cls, metering=False, concurrency=False):
-        # cls.fresh()
         cls.r.flushall()
         cls.ex = Executor(metering=metering, concurrency=concurrency)
 

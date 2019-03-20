@@ -15,7 +15,7 @@ shared_name = Resource()
 sandles = Resource()
 
 @seed
-def initialize():
+def initialize_3():
     resource['stu'] = 1337
     resource['davis'] = 999
     shared_name = 3
@@ -45,7 +45,7 @@ shared_name = Resource()
 shoes = Resource()
 
 @seed
-def initialize():
+def initialize_4():
     resource['stu'] = 888
     resource['davis'] = 7777
     shared_name = 5

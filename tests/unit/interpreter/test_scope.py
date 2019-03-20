@@ -61,11 +61,11 @@ def init():
         """)
 
     def test_execute_function(self):
+        self.ex.metering = False
         contracts = ['reasonable']
         for contract in contracts:
             with open('{}/{}.sen.py'.format(test_contracts_path, contract)) as f:
                 self.ex.publish_code_str(contract, AUTHOR, f.read())
-
         self.ex.metering = True
         result = self.ex.execute_function('reasonable', 'call_with_args',
                                           AUTHOR, stamps=10000, kwargs={
