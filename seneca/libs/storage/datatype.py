@@ -100,9 +100,10 @@ class DataTypeProperties:
 class DataType(Encoder, DataTypeProperties):
 
     def __new__(cls, *args, **kwargs):
-        resource_name = args[0]
+        # resource_name = args[0]
         contract_name = Parser.parser_scope['rt']['contract']
         if kwargs.get('default_value') is not None and not kwargs.get('placeholder'):
+            resource_name = args[0]
             ValueType = Registry.get_value_type(type(kwargs['default_value']).__name__)
             if ValueType in NUMBER_TYPES:
                 ValueType = Decimal
@@ -111,8 +112,8 @@ class DataType(Encoder, DataTypeProperties):
             Registry.register_class(class_name, new_class)
             Parser.parser_scope['resources'][contract_name][resource_name] = class_name
             return cls.__new__(new_class)
-        Parser.parser_scope['resources'][contract_name][resource_name] = cls.__name__
-        Registry.register_class(cls.__name__, cls)
+        # Parser.parser_scope['resources'][contract_name][resource_name] = cls.__name__
+        # Registry.register_class(cls.__name__, cls)
         return super().__new__(cls)
 
     def __init__(self, resource, default_value=None, placeholder=False, *args, **kwargs):
