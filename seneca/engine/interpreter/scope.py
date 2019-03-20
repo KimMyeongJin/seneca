@@ -59,9 +59,10 @@ class Scope:
 class Function(Scope):
     def __call__(self, fn):
         def _fn(*args, **kwargs):
-            contract_name = self.scope['rt']['contract']
-            new_fn = self._set_functions(fn, contract_name)
-            self._set_resources(new_fn, contract_name)
+            log.critical('>>>>>')
+            new_fn = self._set_functions(fn)
+            self._set_resources(new_fn)
+            log.critical('<<<<<')
             args, kwargs = self.set_scope(new_fn, args, kwargs)
             res = new_fn(*args, **kwargs)
             self.reset_scope()
@@ -75,7 +76,8 @@ class Function(Scope):
         self.scope['methods'][contract_name][fn.__name__] = fn.__code__.co_varnames
         return _fn
 
-    def _set_functions(self, fn, contract_name):
+    def _set_functions(self, fn):
+        contract_name = self.scope['rt']['contract']
         if self.scope['namespace'].get(contract_name, {}).get(fn.__name__):
             new_fn = self.scope['namespace'][contract_name][fn.__name__]
         else:
@@ -83,10 +85,11 @@ class Function(Scope):
         log.notice('Function {} in {} is being set as {}'.format(new_fn.__name__, contract_name, new_fn))
         return new_fn
 
-    def _set_resources(self, fn, contract_name):
+    def _set_resources(self, fn):
+        contract_name = self.scope['rt']['contract']
         for resource_name, resource in self.scope['namespace'].get(contract_name, {}).items():
             if not resource.__class__.__name__ == 'function':
-                log.notice('Resource {} in {} is being set as {}'.format(resource_name, contract_name, resource))
+                log.notice('Resource {} in {} is being set as {}'.format(resource_name, contract_name, resource.key))
                 fn.__globals__[resource_name] = resource
 
 
