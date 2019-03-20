@@ -1,5 +1,8 @@
 import copy
 from seneca.constants.config import READ_WRITE_MODE
+from seneca.libs.logger import get_logger
+
+log = get_logger(__name__)
 
 
 class Scope:
@@ -40,6 +43,7 @@ class Scope:
                 resource = fn.__globals__[resource_name]
                 resource.access_mode = READ_WRITE_MODE
                 self.scope['namespace'][contract_name][resource_name] = resource
+                log.notice('Resource {} in {} is being saved as {}'.format(resource_name, contract_name, resource))
 
         return args, kwargs
 
@@ -76,11 +80,13 @@ class Function(Scope):
             new_fn = self.scope['namespace'][contract_name][fn.__name__]
         else:
             new_fn = fn
+        log.notice('Function {} in {} is being set as {}'.format(new_fn.__name__, contract_name, new_fn))
         return new_fn
 
     def _set_resources(self, fn, contract_name):
         for resource_name, resource in self.scope['namespace'].get(contract_name, {}).items():
             if not resource.__class__.__name__ == 'function':
+                log.notice('Resource {} in {} is being set as {}'.format(resource_name, contract_name, resource))
                 fn.__globals__[resource_name] = resource
 
 
