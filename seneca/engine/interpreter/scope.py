@@ -1,12 +1,12 @@
 import copy
 from seneca.constants.config import READ_WRITE_MODE
-from seneca.libs.logger import get_logger
+# from seneca.libs.logger import get_logger
 
 
 class Scope:
 
     scope = {}
-    log = get_logger(__name__)
+    # log = get_logger(__name__)
 
     def set_scope(self, fn, args, kwargs):
 
@@ -72,8 +72,8 @@ class Function(Scope):
                     resource.access_mode = READ_WRITE_MODE
                     if not self.scope['namespace'][contract_name].get(resource_name):
                         self.scope['namespace'][contract_name][resource_name] = resource
-                        Scope.log.notice('Resource {} in {} is being saved as {} (contract={})'.format(resource_name, contract_name,
-                                                                                    resource.key, resource.contract_name))
+                        # Scope.log.notice('Resource {} in {} is being saved as {} (contract={})'.format(resource_name, contract_name,
+                        #                                                             resource.key, resource.contract_name))
 
         return _fn
 
@@ -83,14 +83,14 @@ class Function(Scope):
             new_fn = self.scope['namespace'][contract_name][fn.__name__]
         else:
             new_fn = fn
-        Scope.log.notice('Function {} in {} is being set with one from {}'.format(new_fn.__name__, contract_name, new_fn.__module__))
+        # Scope.log.notice('Function {} in {} is being set with one from {}'.format(new_fn.__name__, contract_name, new_fn.__module__))
         return new_fn
 
     def _set_resources(self, fn):
         contract_name = fn.__module__
         for resource_name, resource in self.scope['namespace'].get(contract_name, {}).items():
             if resource.__class__.__name__ != 'function':
-                Scope.log.info('Resource {} in {} is being set as {}'.format(resource_name, fn.__module__, resource.key))
+                # Scope.log.info('Resource {} in {} is being set as {}'.format(resource_name, fn.__module__, resource.key))
                 fn.__globals__[resource_name] = resource
 
 

@@ -131,6 +131,7 @@ class Executor:
         import_path = 'seneca.contracts.{}.{}'.format(contract_name, func_name)
         Assert.valid_import_path(import_path)
         code_str = ''
+        # TODO change this logic
         try:
             meta = self.get_contract(contract_name)
             author = meta['author']
@@ -196,8 +197,8 @@ class Executor:
         if self.metering and not self.tracer.started:
             error = None
             self.tracer.set_stamp(stamps)
-            self.tracer.start()
             try:
+                self.tracer.start()
                 exec(code_obj, Parser.parser_scope)
             except Exception as e:
                 error = e

@@ -24,6 +24,7 @@ submit_stamps(__stamps_used__)
 
     @staticmethod
     def import_module(code_str, module, func):
+# TODO rename to system resources
         return code_str + '''
 __set_resources__()
 __result__ = {func}()

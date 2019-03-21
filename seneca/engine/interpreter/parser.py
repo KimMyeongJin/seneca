@@ -140,6 +140,7 @@ class NodeTransformer(ast.NodeTransformer):
             Parser.parser_scope['protected'][module_name].add(contract_name)
             return
         elif module_type == 'lib_module':
+            # TODO per discussion, add line to prefix imported variables (both fn and resource)
             Parser.parser_scope['protected']['__global__'].add(module_name)
 
     def _visit_any_import(self, node):
@@ -156,6 +157,7 @@ class NodeTransformer(ast.NodeTransformer):
             for resource_name in resource_names:
                 if func_name == 'Resource':
                     node.value.args = [ast.Str(resource_name)]
+                # TODO per discussion, change below line to prefix resource instead
                 self.set_resource(resource_name, func_name)
             Parser.seed_tree.body.append(node)
         Parser.assigning = resource_names
@@ -206,5 +208,6 @@ class NodeTransformer(ast.NodeTransformer):
         node.decorator_list.append(
             ast.Name(id='__function__', ctx=ast.Load())
         )
+        # TODO per discussion, add line to prefix function declarations
         Parser.seed_tree.body.append(node)
         return node

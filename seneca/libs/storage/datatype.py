@@ -85,6 +85,7 @@ class DataTypeProperties:
 
     @property
     def key(self):
+        # TODO per discussion, change this to simply not use contract_name at all
         if len(self.callstack) == 0 or self.resource.split(DELIMITER)[0] in Parser.parser_scope.get('imports', {}):
             contract_name = self.contract_name
         # elif self.actual_contract:
@@ -118,6 +119,7 @@ class DataType(Encoder, DataTypeProperties):
         return super().__new__(cls)
 
     def __init__(self, resource, default_value=None, placeholder=False, *args, **kwargs):
+        # TODO prefix the resource with the contract_name
         self.resource = resource
         self.contract_name = self.rt['contract']
         self.data = None
