@@ -60,20 +60,9 @@ class Function(Scope):
 
         contract_name = self.scope['rt']['contract']
         _fn.__name__ = fn.__name__
-        _fn.__module__ = contract_name
-        fn.__module__ = contract_name
+        _fn.__module__ = fn.__module__ = contract_name
         self.scope['namespace'][contract_name][fn.__name__] = fn
         self.scope['methods'][contract_name][fn.__name__] = fn.__code__.co_varnames
-
-        for resource_name in self.scope['resources'].get(contract_name, {}):
-            if fn.__globals__.get(resource_name) is not None:
-                resource = fn.__globals__[resource_name]
-                if resource.__class__.__name__ != 'function':
-                    resource.access_mode = READ_WRITE_MODE
-                    if not self.scope['namespace'][contract_name].get(resource_name):
-                        self.scope['namespace'][contract_name][resource_name] = resource
-                        # Scope.log.notice('Resource {} in {} is being saved as {} (contract={})'.format(resource_name, contract_name,
-                        #                                                             resource.key, resource.contract_name))
 
         return _fn
 
@@ -97,18 +86,21 @@ class Function(Scope):
 # Only used during AST parsing
 class Export(Scope):
     def __call__(self, fn):
-        contract_name = self.scope['rt']['contract']
-        if contract_name != '__main__':
-            if not self.scope['exports'].get(fn.__name__):
-                self.scope['exports'][fn.__name__] = set()
-            self.scope['exports'][fn.__name__].add(contract_name)
         return fn
+    #     contract_name = self.scope['rt']['contract']
+    #     if contract_name != '__main__':
+    #         # self.scope['exports'][fn.__name__] = True
+    #         if not self.scope['exports'].get(fn.__name__):
+    #             self.scope['exports'][fn.__name__] = set()
+    #         self.scope['exports'][fn.__name__].add(contract_name)
+    #     return fn
 
 
 # Run only during compilation
 class Seed(Scope):
     def __call__(self, fn):
         if self.scope.get('__seed__'):
+            print('trying to see now')
             if self.scope.get('__executor__'):
                 driver = self.scope['__executor__'].driver
                 # if not driver.hexists('contracts', self.scope['rt']['contract']): # TODO change back to this after CR

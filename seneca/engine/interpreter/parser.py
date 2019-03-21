@@ -21,7 +21,7 @@ class Parser:
         'ast': None,
         'callstack': [],
         'namespace': defaultdict(dict),
-        'exports': {},
+        'exports': defaultdict(dict),
         'imports': {},
         'resources': {},
         'methods': defaultdict(dict),
@@ -67,29 +67,26 @@ class NodeTransformer(ast.NodeTransformer):
 
     @property
     def resource(self):
-        return Parser.parser_scope['resources'].get(self.contract_name, {})
+        return Parser.parser_scope['resources']
 
     def get_resource(self, name):
-        contract_name = self.contract_name
+        contract_name = Parser.parser_scope['imports'].get(name, self.contract_name)
+        resource_name = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, name)
         while True:
-            resource = Parser.parser_scope['resources'].get(contract_name, {}).get(name)
+            resource = Parser.parser_scope['resources'].get(resource_name)
             if resource:
                 if resource[0] == POINTER:
                     contract_name = resource[1:]
+                    resource_name = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, name)
                 else:
-                    return resource
+                    return resource, contract_name
             else:
-                return
+                return None, None
 
-    def set_resource(self, resource_name, func_name, contract_name=None):
+    def set_resource(self, resource, func_name, contract_name=None):
         contract_name = contract_name or self.contract_name
-        if not Parser.parser_scope['resources'].get(contract_name):
-            Parser.parser_scope['resources'][contract_name] = {}
-        Parser.parser_scope['resources'][contract_name][resource_name] = func_name
-
-    @property
-    def constants(self):
-        return [k for k, v in self.resource.items() if v == 'Resource']
+        resource_name = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, resource)
+        Parser.parser_scope['resources'][resource_name] = func_name
 
     @property
     def protected(self):
@@ -107,12 +104,18 @@ class NodeTransformer(ast.NodeTransformer):
         Assert.is_within_scope(node.id, self.protected, self.resource, Parser.parser_scope)
         if Parser.assigning:
             Assert.is_not_resource(Parser.assigning, node.id, Parser.parser_scope)
-        if Parser.parser_scope['ast'] in ('seed', 'export', 'func') \
-                and self.get_resource(node.id) == 'Resource':
-            self.generic_visit(node)
-            return Plugins.resource_reassignment(node.id, node.ctx)
+        if Parser.parser_scope['ast'] in ('seed', 'export', 'func'):
+            resource, contract_name = self.get_resource(node.id)
+            if resource:
+                if resource == 'Resource':
+                    self.generic_visit(node)
+                    node.id = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, node.id)
+                    return Plugins.resource_reassignment(node.id, node.ctx)
+                node.id = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, node.id)
         self.generic_visit(node)
         return node
+
+
 
     def visit_Attribute(self, node):
         Assert.not_system_variable(node.attr)
@@ -120,28 +123,44 @@ class NodeTransformer(ast.NodeTransformer):
         return node
 
     def visit_Import(self, node):
-        for n in node.names:
-            self.validate_imports(n.name, alias=n.asname)
+        for i, n in enumerate(node.names):
+            node.names[i] = self.validate_imports(n.name, alias=n.asname, node=n)
         return self._visit_any_import(node)
 
     def visit_ImportFrom(self, node):
-        for n in node.names:
-            self.validate_imports(node.module, n.name, alias=n.asname)
+        for i, n in enumerate(node.names):
+            node.names[i] = self.validate_imports(node.module, n.name, alias=n.asname, node=n)
         return self._visit_any_import(node)
 
-    def validate_imports(self, import_path, module_name=None, alias=None):
+    def validate_imports(self, import_path, module_name=None, alias=None, node=None):
         contract_name = import_path.split('.')[-1]
         module_type = Assert.valid_import_path(import_path, module_name)
         if module_type == 'smart_contract':
-            if not Parser.parser_scope['imports'].get(module_name):
-                Parser.parser_scope['imports'][module_name] = set()
-            Parser.parser_scope['imports'][module_name].add(contract_name)
+            Parser.parser_scope['imports'][module_name] = contract_name
             self.set_resource(alias or module_name, '{}{}'.format(POINTER, contract_name))
             Parser.parser_scope['protected'][module_name].add(contract_name)
-            return
+            node = self._prefix_resource_with_contract_name(node, import_path.split('.')[-1])
         elif module_type == 'lib_module':
-            # TODO per discussion, add line to prefix imported variables (both fn and resource)
             Parser.parser_scope['protected']['__global__'].add(module_name)
+        return node
+
+    def _prefix_resource_with_contract_name(self, node, contract_name):
+        if type(node) == ast.alias:
+            node.name = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, node.name)
+            # print(node.name)
+        elif type(node) == ast.Name:
+            node.id = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, node.id)
+            # print(node.id)
+        elif type(node) == ast.Attribute:
+            node.value = self._prefix_resource_with_contract_name(node.value, contract_name)
+            # print(node.value)
+        else:
+            # v = node.value
+            # print('\n\n', self.contract_name, ':', dir(v))
+            # print(v)
+            pass
+
+        return node
 
     def _visit_any_import(self, node):
         if Parser.parser_scope['ast'] == None:
@@ -154,12 +173,13 @@ class NodeTransformer(ast.NodeTransformer):
     def visit_Assign(self, node):
         resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
         if resource_names and func_name:
-            for resource_name in resource_names:
-                if func_name == 'Resource':
-                    node.value.args = [ast.Str(resource_name)]
-                # TODO per discussion, change below line to prefix resource instead
-                self.set_resource(resource_name, func_name)
+            for resource in resource_names:
+                resource_name = '{}{}{}'.format(self.contract_name, CONTRACT_NAME_DELIM, resource)
+                node.value.args = [ast.Str(resource_name)]
+                self.set_resource(resource, func_name)
             Parser.seed_tree.body.append(node)
+            for i, t in enumerate(node.targets):
+                node.targets[i] = self._prefix_resource_with_contract_name(t, self.contract_name)
         Parser.assigning = resource_names
         self.generic_visit(node)
         Parser.assigning = None
@@ -173,8 +193,32 @@ class NodeTransformer(ast.NodeTransformer):
         return node
 
     def visit_Call(self, node):
+        print('compiling', Parser.parser_scope['rt']['contract'])
         if Parser.parser_scope['ast'] in ('seed', 'export', 'func'):
             Assert.not_datatype(node)
+            if type(node.func) == ast.Name:
+                contract_name = Parser.parser_scope['imports'].get(node.func.id)
+                print('\t', Parser.parser_scope)
+                print('\t', node.func.id, contract_name)
+                if contract_name:
+                    node.func.id = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, node.func.id)
+                    # print(node.func.id)
+                # else:
+                #     print(node.func.id)
+            # elif type(node.func) == ast.Attribute:
+            #     if type(node.func.value) == ast.Name:
+            #         contract_name = Parser.parser_scope['imports'].get(node.func.value.id)
+            #         v = contract_name
+            #         # print(dir(v))
+            #         print('name', v)
+                # print(Parser.parser_scope.get('exports'))
+                # print(Parser.parser_scope.get('imports'))
+            # node.func = self._prefix_resource_with_contract_name(node.func)
+            # resource, contract_name = self.get_resource(node.func)
+            # print(resource, contract_name)
+            # v = node.func
+            # print(dir(v))
+            # print(v)
             self.generic_visit(node)
             return node
         if not Parser.parser_scope['ast']:
@@ -202,12 +246,14 @@ class NodeTransformer(ast.NodeTransformer):
                     ast_set = d.id
             if not ast_set:
                 Parser.parser_scope['ast'] = 'func'
+            if Parser.parser_scope['ast'] == 'export':
+                Parser.parser_scope['exports'][self.contract_name][node.name] = True
             if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
+                # print('\t>>>>', self.contract_name, node.name)
                 self.generic_visit(node)
+                # print('\t<<<<', self.contract_name, node.name)
             Parser.parser_scope['ast'] = original_ast_scope
-        node.decorator_list.append(
-            ast.Name(id='__function__', ctx=ast.Load())
-        )
-        # TODO per discussion, add line to prefix function declarations
+        node.decorator_list.append(ast.Name(id='__function__', ctx=ast.Load()))
+        node.name = '{}{}{}'.format(self.contract_name, CONTRACT_NAME_DELIM, node.name)
         Parser.seed_tree.body.append(node)
         return node

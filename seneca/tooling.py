@@ -1,5 +1,6 @@
 from seneca.engine.interpreter.executor import Executor
 from seneca.engine.interpreter.parser import Parser
+from seneca.constants.config import *
 import types
 
 
@@ -39,6 +40,7 @@ class SenecaFunction:
 
 class ContractWrapper:
     def __init__(self, contract_name=None, driver=default_interface, default_sender=None):
+        self.contract_name = contract_name
         contract = driver.get_contract(contract_name)
         self.driver = driver
         self.author = contract['author']
@@ -48,6 +50,7 @@ class ContractWrapper:
         codes = [cd for cd in contract_code.co_consts if isinstance(cd, types.CodeType)]
         for _c in codes:
             func_name, kwargs = _c.co_name, _c.co_varnames
+            func_name = func_name[len(contract_name)+1:]
             setattr(self, func_name, SenecaFunction(driver, contract_name, func_name,
                                                     self.default_sender,
                                                     kwargs=kwargs))

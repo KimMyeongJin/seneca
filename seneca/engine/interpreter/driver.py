@@ -1,5 +1,6 @@
 from walrus.tusks.ledisdb import WalrusLedis
 from walrus import Walrus
+from seneca.constants.config import *
 
 
 # class Driver(WalrusLedis):
@@ -12,10 +13,10 @@ from walrus import Walrus
 class ConcurrentDriver(WalrusLedis):
 
     def hget(self, hash_key, key):
-        return self.get(hash_key+':'+key)
+        return self.get(hash_key+DELIMITER+key)
 
     def hset(self, hash_key, key, value):
-        return self.set(hash_key+':'+key, value)
+        return self.set(hash_key+DELIMITER+key, value)
 
     def hexists(self, *args, **kwargs):
         return bool(self.hget(*args, **kwargs))

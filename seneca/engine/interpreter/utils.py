@@ -186,12 +186,12 @@ class Assert:
 
     @staticmethod
     def validate(imports, exports, resources, current_contract):
-        for module, contracts in imports.items():
-            for contract_name in contracts:
-                if contract_name not in exports.get(module, {}) and module not in resources.get(contract_name, {}):
-                    # print(contract_name, module)
-                    # print(imports)
-                    # print(exports)
-                    # print(resources)
-                    raise ImportError('Forbidden to import "{}.{}"'.format(
-                        contract_name, module))
+        for module, contract_name in imports.items():
+            module_name = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, module)
+            if not exports.get(contract_name, {}).get(module) and module_name not in resources:
+                # print(contract_name, module_name)
+                # print(imports)
+                # print(exports)
+                # print(resources)
+                raise ImportError('Forbidden to import "{}.{}"'.format(
+                    contract_name, module))

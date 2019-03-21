@@ -109,16 +109,16 @@ def init():
     res4 = rr2(string='davis')
 
         """)
-        self.assertEqual(self.ex.driver.hget('Hash:c_3:resource', 'stu'), b'100')
-        self.assertEqual(self.ex.driver.hget('Hash:c_3:resource', 'davis'), b'123')
-        self.assertEqual(self.ex.driver.hget('Hash:c_4:resource', 'stu'), b'888')
-        self.assertEqual(self.ex.driver.hget('Hash:c_4:resource', 'davis'), b'7777')
+        self.assertEqual(self.ex.driver.hget('Hash:c_3_resource', 'stu'), b'100')
+        self.assertEqual(self.ex.driver.hget('Hash:c_3_resource', 'davis'), b'123')
+        self.assertEqual(self.ex.driver.hget('Hash:c_4_resource', 'stu'), b'888')
+        self.assertEqual(self.ex.driver.hget('Hash:c_4_resource', 'davis'), b'7777')
 
     def test_repeated_variables_inside_different_contracts_set(self):
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
-        self.assertEqual(self.ex.driver.hget('Resource:c_3', 'shared_name'), b'3')
-        self.assertEqual(self.ex.driver.hget('Resource:c_4', 'shared_name'), b'5')
+        self.assertEqual(self.ex.driver.get('Resource:c_3_shared_name'), b'3')
+        self.assertEqual(self.ex.driver.get('Resource:c_4_shared_name'), b'5')
 
     def test_repeated_variables_inside_different_contracts_get(self):
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)

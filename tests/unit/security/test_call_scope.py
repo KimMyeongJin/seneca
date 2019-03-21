@@ -59,6 +59,3 @@ def init():
         self.ex.execute_function('c_1', 'call_me', AUTHOR, 10000)
         self.assertEqual(self.ex.driver.hget('Hash:c_1:my_number', AUTHOR), b'"1234567890"')
         self.assertEqual(self.ex.driver.hget('Hash:c_2:my_number', 'c_1'), b'"1234"')
-
-if __name__ == '__main__':
-    unittest.main()

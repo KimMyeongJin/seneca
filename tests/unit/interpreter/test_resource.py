@@ -21,7 +21,8 @@ class TestResource(TestExecutor):
 
     def test_indirect_resource_modify(self):
         balances = self.ex.get_resource('atomic_swap', 'balances')
-        with self.assertRaises(AssertionError) as context:
+        self.assertEqual(balances, None)
+        with self.assertRaises(TypeError) as context:
             balances['black_hole'] = 1
 
     def test_import_modify_resource_of_another_contract(self):

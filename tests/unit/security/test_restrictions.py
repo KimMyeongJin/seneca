@@ -37,6 +37,7 @@ def good():
     
 @seed
 def init():
+    print(globals())
     assert good() == 0.05, 'Not equal'
         """)
 
@@ -48,7 +49,7 @@ class TestGlobalInit(TestExecutor):
 from seneca.libs.storage.datatypes import Hash
 z = Hash('z')
         """)
-        self.assertEqual(repr(Parser.parser_scope['z']), 'Hash:__main__:z')
+        self.assertEqual(repr(Parser.parser_scope['__main___z']), 'Hash:__main___z')
 
     def test_assign_anything_other_than_datatype_in_global(self):
         with self.assertRaises(CompilationException) as context:

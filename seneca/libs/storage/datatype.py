@@ -45,10 +45,9 @@ class Encoder(object):
         if not value:
             if resource:
                 cls = self.__class__
-                obj = cls(resource, cls.default_value.get(self.contract_name), placeholder=True)
-                obj.contract_name = self.contract_name
+                obj = cls(resource, cls.default_value, placeholder=True)
                 return obj
-            return self.default_value.get(self.contract_name, self.base_default_value)
+            return cls.default_value or self.base_default_value
         value = value.decode()
         if value[0] == POINTER:
             data_type_name, _, key = value[1:].split(DELIMITER, 2)
@@ -85,14 +84,7 @@ class DataTypeProperties:
 
     @property
     def key(self):
-        # TODO per discussion, change this to simply not use contract_name at all
-        if len(self.callstack) == 0 or self.resource.split(DELIMITER)[0] in Parser.parser_scope.get('imports', {}):
-            contract_name = self.contract_name
-        # elif self.actual_contract:
-        #     contract_name = self.actual_contract
-        else:
-            contract_name = self.callstack[-1][0]
-        return DELIMITER.join([self.__class__.__name__, contract_name, self.resource])
+        return DELIMITER.join([self.__class__.__name__, self.resource])
 
     @property
     def top_level_key(self):
@@ -111,25 +103,21 @@ class DataType(Encoder, DataTypeProperties):
             class_name = ValueType.__name__.capitalize() + cls.__name__
             new_class = type(class_name, (cls, ValueType), {})
             Registry.register_class(class_name, new_class)
-            contract_name = Parser.parser_scope['rt']['contract']
-            Parser.parser_scope['resources'][contract_name][resource_name] = class_name
+            Parser.parser_scope['resources'][resource_name] = class_name
             return cls.__new__(new_class)
-
         Registry.register_class(cls.__name__, cls)
         return super().__new__(cls)
 
     def __init__(self, resource, default_value=None, placeholder=False, *args, **kwargs):
-        # TODO prefix the resource with the contract_name
         self.resource = resource
-        self.contract_name = self.rt['contract']
         self.data = None
         self.actual_contract = None
         self.access_mode = READ_WRITE_MODE
         if default_value is not None:
-            self.default_value[self.contract_name] = default_value
+            self.default_value = default_value
 
         if not placeholder:
-            if not Parser.parser_scope.get('resources', {}).get(self.rt['contract'], {}).get(resource):
+            if not Parser.parser_scope.get('resources', {}).get(resource):
                 assert not self.driver.hexists(self.properties_hash, RESOURCE_KEY), 'A {} named "{}" has already been created'.format(self.__class__.__name__, resource)
                 self.driver.hset(self.properties_hash, RESOURCE_KEY, resource)
 
@@ -151,7 +139,7 @@ class DataType(Encoder, DataTypeProperties):
 class SubscriptType:
 
     def __getitem__(self, key):
-        resource = '{}{}{}'.format(self.key.split(DELIMITER, 2)[-1], DELIMITER, key)
+        resource = '{}{}{}'.format(self.key.split(DELIMITER, 1)[1], DELIMITER, key)
         return self.decode(super().__getitem__(key), resource=resource)
 
     def __setitem__(self, key, value):

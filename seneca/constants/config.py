@@ -26,6 +26,7 @@ OFFICIAL_CONTRACTS = [
     'atomic_swap'
 ]
 
+CONTRACT_NAME_DELIM = '_'
 DELIMITER = ':'
 POINTER = '&'
 SORTED_TYPE = '~'

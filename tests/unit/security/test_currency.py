@@ -21,5 +21,4 @@ def rm_mones():
         with self.assertRaises(AssertionError) as context:
             self.ex.execute_function('bad_mones', 'rm_mones', 'birb', 10000)
 
-if __name__ == '__main__':
-    unittest.main()
+

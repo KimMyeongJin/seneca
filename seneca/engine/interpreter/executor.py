@@ -1,7 +1,7 @@
 from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
-from seneca.constants.config import MASTER_DB, LEDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
+from seneca.constants.config import *
 import seneca, sys, marshal, os, types, ujson as json
 from base64 import b64encode, b64decode
 from os.path import join
@@ -139,7 +139,8 @@ class Executor:
             author = self.author
         if self.metering:
             code_str = Plugins.assert_stamps(code_str)
-        code_str = Plugins.import_module(code_str, contract_name, func_name)
+        code_str = Plugins.import_module(code_str, contract_name,
+                                         '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, func_name))
         code_obj = compile(code_str, import_path, 'exec')
         return code_obj, author
 
@@ -159,7 +160,9 @@ class Executor:
             exec(meta['code_obj'], Parser.parser_scope)
         except:
             pass
+        resource_name = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, resource_name)
         resource = Parser.parser_scope.get(resource_name)
+        if resource is None: return
         resource.contract_name = contract_name
         if not Parser.parser_scope['imports'].get(resource_name):
             Parser.parser_scope['imports'][resource_name] = set()

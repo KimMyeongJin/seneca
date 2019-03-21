@@ -122,14 +122,12 @@ __import__('sys')
 
     def test_recursion(self):
         with self.assertRaises(RecursionError) as context:
-            self.ex.execute_code_str("""
+            self.ex.publish_code_str('recursion', 'anonymoose', """
+@export
 def recurse():
     return recurse()
-    
-@seed
-def init():
-    recurse()
             """)
+            self.ex.execute_function('recursion', 'recurse', 'anonymoose')
 
     def test_injection(self):
         self.ex.execute_code_str("""
