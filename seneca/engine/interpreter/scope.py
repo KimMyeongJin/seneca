@@ -58,6 +58,7 @@ class Function(Scope):
             self.reset_scope()
             return res
 
+        # TODO infer the contract_name during compilation
         contract_name = self.scope['rt']['contract']
         _fn.__name__ = fn.__name__
         _fn.__module__ = fn.__module__ = contract_name

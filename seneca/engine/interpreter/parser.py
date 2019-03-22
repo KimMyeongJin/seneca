@@ -10,11 +10,14 @@ from seneca.constants.config import *
 
 class Parser:
     basic_scope = {
+
         'export': Export(),
         'seed': Seed(),
+        '__function__': Function(),
+
+
         '__set_resources__': set_resource_limits,
         '__decimal__': to_decimal,
-        '__function__': Function(),
         '__builtins__': SAFE_BUILTINS
     }
     parser_scope = {
@@ -145,6 +148,7 @@ class NodeTransformer(ast.NodeTransformer):
         return node
 
     def _prefix_resource_with_contract_name(self, node, contract_name):
+        # TODO explore nodes that can result in the importation
         if type(node) == ast.alias:
             node.name = '{}{}{}'.format(contract_name, CONTRACT_NAME_DELIM, node.name)
             # print(node.name)
@@ -175,7 +179,8 @@ class NodeTransformer(ast.NodeTransformer):
         if resource_names and func_name:
             for resource in resource_names:
                 resource_name = '{}{}{}'.format(self.contract_name, CONTRACT_NAME_DELIM, resource)
-                node.value.args = [ast.Str(resource_name)]
+                # TODO do not inherit the contract as it is already prefixed
+                # node.value.args = [ast.Str(resource_name)]
                 self.set_resource(resource, func_name)
             Parser.seed_tree.body.append(node)
             for i, t in enumerate(node.targets):

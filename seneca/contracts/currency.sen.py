@@ -6,6 +6,7 @@ seed_amount = Resource()
 balances = Hash('balances', default_value=0)
 allowed = Hash('allowed', default_value=0)
 
+
 @seed
 def seed_wallets():
     # Initialization

@@ -128,6 +128,7 @@ class Executor:
 
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract_func(self, contract_name, func_name):
+        # TODO check to see if the fn_name needs prefixing
         import_path = 'seneca.contracts.{}.{}'.format(contract_name, func_name)
         Assert.valid_import_path(import_path)
         code_str = ''
