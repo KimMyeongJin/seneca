@@ -137,7 +137,7 @@ _SAFE_NAMES = [
     # 'dir',
     # 'help',
     'print',
-    'globals',
+    # 'globals',
     # 'locals',
     # 'type'
 ]
