@@ -27,7 +27,7 @@ class Executor:
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
         self.official_contracts = OFFICIAL_CONTRACTS
-        self.setup_official_contracts()
+        # self.setup_official_contracts()
         self.metering = metering
         self.concurrency = concurrency
         self.setup_tracer()
@@ -52,7 +52,8 @@ class Executor:
         if not isinstance(sys.meta_path[-1], LedisFinder):
             self.old_sys_path = sys.meta_path
             # self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), LedisFinder()]
-            self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
+            # self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
+            self.new_sys_path = [*sys.meta_path, LedisFinder()]
 
             sys.meta_path = self.new_sys_path
 
@@ -80,7 +81,9 @@ class Executor:
 
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract(self, contract_name):
-        contract = json.loads(self.driver.hget('contracts', contract_name).decode())
+        res = self.driver.hget('contracts', contract_name)
+        assert res is not None, 'Contract "{}" is not found'.format(contract_name)
+        contract = json.loads(res.decode())
         contract['code_str'] = b64decode(contract['code_str']).decode()
         contract['code_obj'] = marshal.loads(b64decode(contract['code_obj']))
         return contract
@@ -241,3 +244,9 @@ class Executor:
         self.execute(contract['code_obj'], module.__dict__)
         return module
 
+    def publish_contract(self, contract_name, code_str):
+        self.driver.hset('contracts', contract_name, b64encode(code_str.encode()))
+
+    def retrieve_contract(self, contract_name):
+        res = self.driver.hget('contracts', contract_name)
+        return b64decode(res.decode()).decode()

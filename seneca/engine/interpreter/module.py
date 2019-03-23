@@ -4,6 +4,7 @@ from importlib.abc import Loader, MetaPathFinder
 from importlib.util import spec_from_file_location
 from seneca.engine.interpreter.parser import Parser
 from seneca.constants.config import SENECA_SC_PATH
+from seneca.engine.compiler.parser import parse_ast, get_contract_scope_from_meta
 
 
 class SenecaFinder(MetaPathFinder):
@@ -71,10 +72,23 @@ class LedisFinder:
         return None
 
 
-class LedisLoader(SenecaLoader):
+class LedisLoader(Loader):
 
     def __init__(self, fullname):
         self.fullname = fullname
         self.contract_name = fullname.split('.')[2]
-        self.code_obj = Parser.executor.get_contract(self.contract_name)['code_obj']
+        code_str = Parser.executor.retrieve_contract(self.contract_name)
+        self.contract_scope = get_contract_scope_from_meta(parse_ast(code_str))
+        # self.code_obj = Parser.executor.get_contract(self.contract_name)['code_obj']
         self.is_main = True
+
+    def exec_module(self, module):
+        print(self.contract_name)
+        print(self.contract_scope)
+        # old_contract_name = Parser.parser_scope['rt']['contract']
+        # Parser.parser_scope['rt']['contract'] = self.contract_name
+        # scope = vars(module)
+        # scope.update(Parser.parser_scope)
+        # Parser.executor.execute(self.code_obj, scope)
+        # Parser.parser_scope['rt']['contract'] = old_contract_name
+        return module

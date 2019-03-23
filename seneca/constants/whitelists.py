@@ -36,7 +36,7 @@ ALLOWED_AST_TYPES = {
     ast.arg,
     ast.Add,
     ast.Lambda,
-    ast.Import,
+    # ast.Import,  # Only allow import from
     ast.ImportFrom,
     ast.Name,
     ast.Num,
