@@ -1,5 +1,5 @@
 from tests.utils import TestExecutor
-from unittest import mock
+from unittest import mock, TestCase
 from seneca.engine.client import *
 from seneca.engine.interpreter.parser import Parser
 from seneca.libs.logger import overwrite_logger_level, get_logger
@@ -8,6 +8,9 @@ import random, os, marshal
 import ujson as json
 from base64 import b64encode
 from seneca.constants.config import SENECA_PATH
+from walrus.tusks.ledisdb import WalrusLedis
+from seneca.constants.config import MASTER_DB, LEDIS_PORT
+from multiprocessing import Process
 
 
 log = get_logger("TestSenecaClient")
@@ -19,7 +22,8 @@ MINT_WALLETS = {
     'birb': 8000,
     'ghu': 9000,
     'tj': 8000,
-    'ethan': 8000
+    'ethan': 8000,
+    'raghu': 8000
 }
 
 # Add a bunch of other random wallet
@@ -30,26 +34,21 @@ MINT_WALLETS = {
 TEST_CONTRACT = \
 """
 from seneca.libs.storage.datatypes import Hash
-
-sample = Hash('sample')
+balances = Hash('balances', default_value=0)
 
 @seed
-def init():
-    sample['hello'] = 'world'
+def seed():
+    balances['raghu'] = 10000
+
+@export
+def transfer(to, amount):
+    assert balances[rt['sender']] >= amount, 'sender {} has amount {} but tried to send {}'.format(rt['sender'], balances[rt['sender']], amount)
+    balances[to] += amount
+    balances[rt['sender']] -= amount
     
 @export
-def one_you_can_export():
-    print('Running one_you_can_export()')
-@export
-def one_you_can_also_export():
-    print('Running one_you_can_also_export()')
-    one_you_can_export()
-def one_you_cannot_export(dont, do, it='wrong'):
-    print('Always runs: Running one_you_cannot_export()')
-@export
-def one_you_can_also_also_export():
-    print('Running one_you_can_also_also_export()')
-    one_you_cannot_export('a', 'b', it='c')
+def get_balance(account):
+    return balances[account]
 """
 
 
@@ -71,7 +70,7 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
     return contract
 
 
-class TestSenecaClient(TestExecutor):
+class TestSenecaClient(TestCase):
 
     LOG_LVL = 1
 
@@ -89,8 +88,8 @@ class TestSenecaClient(TestExecutor):
 
     def setUp(self):
         # overwrite_logger_level(0)
-        self.ex = Executor(metering=False, concurrency=False)
-        self.r.flushall()
+        driver = WalrusLedis(port=LEDIS_PORT)
+        driver.flushall()
         self._mint_wallets()
         self.completed_hashes = defaultdict(list)
 
@@ -107,6 +106,9 @@ class TestSenecaClient(TestExecutor):
                 self.assertEqual(cr_data.input_hash, input_hash)
             if expected_sbb_rep:
                 self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
+                # DEBUG -- TODO DELETE
+                log.important("input hash {} has sb rep {}".format(input_hash, cr_data.get_subblock_rep()))
+                # END DEBUG
             if merge_master:
                 asyncio.ensure_future(_merge(client))
             if client and input_hash:
@@ -138,8 +140,9 @@ class TestSenecaClient(TestExecutor):
         return contracts
 
     def _mint_wallets(self, seed_amount=None):
+        ex = Executor(metering=False, concurrency=False)
         for wallet, amount in MINT_WALLETS.items():
-            self.ex.execute_function('currency', 'mint', GENESIS_AUTHOR, STAMP_AMOUNT, kwargs={
+            ex.execute_function('currency', 'mint', GENESIS_AUTHOR, STAMP_AMOUNT, kwargs={
                 'to': wallet, 'amount': seed_amount or amount
             })
 
@@ -207,6 +210,7 @@ class TestSenecaClient(TestExecutor):
         self.assertEqual(client.active_db.next_contract_idx, 2)
 
     # TODO: Davis!
+    # LOLLL HE SERIOUSLY JUST COMMENTED THEM OUT WTF FALCON
     # def test_with_just_a_lone_publish_transaction(self):
     #
     #     self.ex.concurrency = False
@@ -755,8 +759,7 @@ class TestSenecaClient(TestExecutor):
 
         loop.close()
 
-    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
-    def test_publish_tx_then_use_that_tx_with_one_sb_builder(self):
+    def _test_publish(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
@@ -764,29 +767,17 @@ class TestSenecaClient(TestExecutor):
 
         contract_name = 'stubucks'
         input_hash1 = '1' * 64
-        input_hash2 = '2' * 64
-        input_hash3 = '3' * 64
-        input_hash4 = '4' * 64
 
-        with open(os.path.join(os.path.dirname(SENECA_PATH), 'test_contracts', 'stubucks.sen.py'), 'r') as f:
-            code = f.read()
+        code = TEST_CONTRACT
 
         # print("got contract code {}".format(code))
-        publish_tx = MockPublishTransaction(sender=MINT_WALLETS['stu'], contract_name=contract_name, contract_code=code)
-        transfer_tx = MockContractTransaction(sender='435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa',
-                                              contract_name=contract_name, func_name='transfer', to=MINT_WALLETS['birb'], amount=1)
+        publish_tx = MockPublishTransaction(sender=GENESIS_AUTHOR, contract_name=contract_name, contract_code=code)
 
-        tx1_set = self._gen_random_contracts(num=7) + [publish_tx]
-        tx2_set = self._gen_random_contracts(num=7) + [transfer_tx]
-        tx3_set = []
-        tx4_set = self._gen_random_contracts(num=10)
+        client.execute_sb(input_hash1, contracts=[publish_tx],
+                          completion_handler=self.assert_completion(None, input_hash1, merge_master=True,
+                                                                    client=client))
 
-        client.execute_sb(input_hash1, contracts=tx1_set, completion_handler=self.assert_completion(None, input_hash1, merge_master=True, client=client))
-        client.execute_sb(input_hash2, contracts=tx2_set, completion_handler=self.assert_completion(None, input_hash2, merge_master=True, client=client))
-        client.execute_sb(input_hash3, contracts=tx3_set, completion_handler=self.assert_completion(None, input_hash3, merge_master=True, client=client))
-        client.execute_sb(input_hash4, contracts=tx4_set, completion_handler=self.assert_completion(None, input_hash4, merge_master=True, client=client))
-
-        coros = self._get_futures(OrderedDict({input_hash1: client, input_hash2: client, input_hash3: client, input_hash4: client}))
+        coros = self._get_futures(OrderedDict({input_hash1: client}))
         loop.run_until_complete(asyncio.gather(*coros))
 
         async def _wait_for_things_to_finish():
@@ -796,6 +787,56 @@ class TestSenecaClient(TestExecutor):
 
         loop.run_until_complete(_wait_for_things_to_finish())
         loop.close()
+
+    def _test_send_collision(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.metering = False
+
+        contract_name = 'stubucks'
+        input_hash2 = '2' * 64
+
+        transfer_tx = MockContractTransaction(sender='raghu',
+                                              contract_name=contract_name, func_name='transfer', to='davis', amount=20)
+
+        # raghu starts with a balance of 10000
+        expected_state = [(transfer_tx, "SUCC",
+                           "SET DecimalHash:stubucks:balances:davis 20.0;SET DecimalHash:stubucks:balances:raghu 9980.0;"), ]
+
+        client.execute_sb(input_hash2, contracts=[transfer_tx],
+                          completion_handler=self.assert_completion(expected_state, input_hash2, merge_master=True,
+                                                                    client=client))
+
+        coros = self._get_futures(OrderedDict({input_hash2: client}))
+        loop.run_until_complete(asyncio.gather(*coros))
+
+        async def _wait_for_things_to_finish():
+            log.notice("Tester waiting for things to finish")
+            await asyncio.sleep(1)
+            log.notice("Tester done waiting")
+
+        loop.run_until_complete(_wait_for_things_to_finish())
+        loop.close()
+
+    def _test_publish_and_send_collision(self):
+        self._test_publish()
+        self._test_send_collision()
+
+    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+    def test_publish_tx_then_use_that_tx_with_one_sb_builder(self):
+        p1 = Process(target=self._test_publish)
+        p2 = Process(target=self._test_send_collision)
+        log.info("Starting process 1...")
+        p1.start()
+        p1.join()
+        log.info("Process 1 Finished...")
+
+        log.info("Starting process 2...")
+        p2.start()
+        p2.join()
+        log.info("Process 2 Finished...")
+
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
 

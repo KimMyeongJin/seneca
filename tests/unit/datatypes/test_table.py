@@ -24,7 +24,7 @@ class TestTable(TestDataTypes):
             'price': int
         })
         Coin.add_row('tau', purpose='anarchy net')
-        Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
+        Coin.add_row(purpose='anarchy net', name='STUBUCKS_CODE', price=1)
         Coin.add_row('falcoin', 'anarchy net')
 
         self.assertEqual(Coin.count, 3)
@@ -43,7 +43,7 @@ class TestTable(TestDataTypes):
             'price': int
         })
         Coin.add_row('faltau', purpose='anarchy net')
-        Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
+        Coin.add_row(purpose='anarchy net', name='STUBUCKS_CODE', price=1)
         Coin.add_row('falcoin', 'anarchy net')
 
         self.assertEqual(Coin.find({'$property': 'name', '$exactly': 'faltau'}), [['faltau', 'anarchy net', 0.0]])
@@ -90,7 +90,7 @@ class TestTable(TestDataTypes):
     #         'price': int
     #     })
     #     Coin.add_row('faltau', purpose='anarchy net')
-    #     Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
+    #     Coin.add_row(purpose='anarchy net', name='STUBUCKS_CODE', price=1)
     #     Coin.add_row('falcoin', 'anarchy net')
     #     Coin.delete_table()
     #     for item in self.ex.driver.keys():
@@ -103,7 +103,7 @@ class TestTable(TestDataTypes):
     #         'price': int
     #     })
     #     Coin.add_row('faltau', purpose='anarchy net', price=6)
-    #     Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
+    #     Coin.add_row(purpose='anarchy net', name='STUBUCKS_CODE', price=1)
     #     Coin.add_row('falcoin', 'anarchy net', price=5)
     #     Coin.add_row('falcore', 'anarchy net', price=4)
     #     Coin.add_row('falcone', 'anarchy net', price=41)
@@ -130,5 +130,5 @@ class TestTable(TestDataTypes):
     #         'price': Property(int, sort=True)
     #     })
     #     Coin.add_row('faltau', purpose='anarchy net', price=6)
-    #     Coin.add_row(purpose='anarchy net', name='stubucks', price=10)
+    #     Coin.add_row(purpose='anarchy net', name='STUBUCKS_CODE', price=10)
     #     Coin.add_row('falcoin', 'anarchy net', price=100)

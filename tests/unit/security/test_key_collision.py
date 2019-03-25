@@ -61,6 +61,25 @@ def change_bread(bread, amount):
 
 """
 
+STUBUCKS_CODE = """
+from seneca.libs.storage.datatypes import Hash
+balances = Hash('balances', default_value=0)
+
+@seed
+def seed():
+    balances['raghu'] = 1000 
+
+@export
+def transfer(to, amount):
+    assert balances[rt['sender']] >= amount, 'oh nooo i blew up'
+    balances[to] += amount
+    balances[rt['sender']] -= amount
+    
+@export
+def get_balance(account):
+    return balances[account]
+"""
+
 STU = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 DAVIS = 'a103715914a7aae8dd8fddba945ab63a169dfe6e37f79b4a58bcf85bfd681694'
 
@@ -83,12 +102,34 @@ class TestKeyCollision(TestExecutor):
         self.ex.publish_code_str('restaurant_a', 'anonymoose', restaurant_a)
         self.ex.publish_code_str('restaurant_b', 'anonymoose', restaurant_b)
         res = self.ex.execute_function('restaurant_a', 'this_bread', 'anonymoose', kwargs={'bread': 'rye'})
+
+        # This tests if things were seeded properly I guess
         self.assertEqual(res['output'], Decimal('15.4'))
         res = self.ex.execute_function('restaurant_b', 'this_bread', 'anonymoose', kwargs={'bread': 'rye'})
         self.assertEqual(res['output'], Decimal('22.2'))
+
+        # Here we set a value on restaurant_a's table and check it was updated
         self.ex.execute_function('restaurant_a', 'change_bread', 'anonymoose', kwargs={'bread': 'rye', 'amount': 4.45})
         res = self.ex.execute_function('restaurant_a', 'this_bread', 'anonymoose', kwargs={'bread': 'rye'})
         self.assertEqual(res['output'], Decimal('4.45'))
+
+        # Now we try to do the same on restaurant_b's table
+        self.ex.execute_function('restaurant_b', 'change_bread', 'anonymoose', kwargs={'bread': 'rye', 'amount': 3.14})
+        res = self.ex.execute_function('restaurant_b', 'this_bread', 'anonymoose', kwargs={'bread': 'rye'})
+        self.assertEqual(res['output'], Decimal('3.14'))
+
+    def test_same_variable_names_with_currency_collision(self):
+        # WHY THE FK DOES THIS WORK???? IT FAILS HORRIBLY IN PRODUCTION....
+        self.ex.publish_code_str('stubucks', 'anonymoose', STUBUCKS_CODE)
+
+        res = self.ex.execute_function('stubucks', 'get_balance', 'anonymose', kwargs={'account': 'raghu'})
+        self.assertEqual(res['output'], Decimal('1000'))
+
+        self.ex.execute_function('stubucks', 'transfer', 'raghu', kwargs={'to': 'davis', 'amount': 500})
+        r_bal = self.ex.execute_function('stubucks', 'get_balance', 'anonymose', kwargs={'account': 'raghu'})
+        d_bal = self.ex.execute_function('stubucks', 'get_balance', 'anonymose', kwargs={'account': 'davis'})
+        self.assertEqual(r_bal['output'], Decimal('500'))
+        self.assertEqual(d_bal['output'], Decimal('500'))
 
     def test_same_variable_function_names_with_imported(self):
         self.ex.publish_code_str('restaurant_a', 'anonymoose', restaurant_a)
@@ -99,27 +140,27 @@ class TestKeyCollision(TestExecutor):
 
     def test_stubucks_collision(self):
         with open('{}/new_stubucks.sen.py'.format(test_contracts_path)) as f:
-            self.ex.publish_code_str('stubucks', 'anonymoose', f.read())
-        res = self.ex.execute_function('stubucks', 'transfer', STU, kwargs={
+            self.ex.publish_code_str('STUBUCKS_CODE', 'anonymoose', f.read())
+        res = self.ex.execute_function('STUBUCKS_CODE', 'transfer', STU, kwargs={
             'to': DAVIS,
             'amount': 1337
         })
-        balances = self.ex.get_resource('stubucks', 'balances')
+        balances = self.ex.get_resource('STUBUCKS_CODE', 'balances')
         self.assertEqual(balances[STU], Decimal('998663'))
         self.assertEqual(balances[DAVIS], Decimal('1337'))
 
     # def test_stubucks_collision_with_cr(self):
     #     with open('{}/new_stubucks.sen.py'.format(test_contracts_path)) as f:
-    #         self.ex.publish_code_str('stubucks', 'anonymoose', f.read())
+    #         self.ex.publish_code_str('STUBUCKS_CODE', 'anonymoose', f.read())
     #     self.ex.concurrency = True
     #     expected_info = self._build_info_dict(sbb_idx=0, contract_idx=1)
     #     BookKeeper.set_cr_info(**expected_info)
-    #     res = self.ex.execute_function('stubucks', 'transfer', STU, kwargs={
+    #     res = self.ex.execute_function('STUBUCKS_CODE', 'transfer', STU, kwargs={
     #         'to': DAVIS,
     #         'amount': 1337
     #     })
     #     print(res)
-    #     balances = self.ex.get_resource('stubucks', 'balances')
+    #     balances = self.ex.get_resource('STUBUCKS_CODE', 'balances')
     #     self.assertEqual(balances[STU], Decimal('998663'))
     #     self.assertEqual(balances[DAVIS], Decimal('1337'))
 
