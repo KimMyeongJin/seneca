@@ -1,3 +1,4 @@
+from seneca.engine.interpreter.code_modifier import CodeModifier
 from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
@@ -11,6 +12,9 @@ from seneca.engine.interpreter.module import SenecaFinder, LedisFinder
 from seneca.engine.interpreter.driver import Driver
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.conflict_resolution import LedisProxy
+from seneca.libs.logger import get_logger
+
+log = get_logger("Executor")
 
 
 class Executor:
@@ -79,12 +83,15 @@ class Executor:
                 'methods': methods,
             }, driver=self.driver, override=True)
 
+    # THIS IS VERY SUSPECT ..
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract(self, contract_name):
         contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name).decode()))
+        log.important3("[get_contract] for contrat name {} returning contract:\n{}".format(contract_name, contract))
         return contract
 
     def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
+        log.important("[set_contract inside executor] setting contract name {}".format(contract_name))
         if not driver:
             driver = self.driver
         if not override:
@@ -107,6 +114,10 @@ class Executor:
 
     @staticmethod
     def compile(contract_name, code_str, scope={}):
+        log.important2("compiing code string {}".format(code_str))
+        codeMod = CodeModifier('_sf')
+        code_str = codeMod.transform(code_str, contract_name)
+        log.important2("NEW code string {}".format(code_str))
         Parser.reset()
         Executor.set_default_rt(Parser.parser_scope.get('rt', {}))
         Parser.parser_scope.update(scope)
@@ -135,6 +146,7 @@ class Executor:
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract_func(self, contract_name, func_name):
         import_path = 'seneca.contracts.{}.{}'.format(contract_name, func_name)
+        log.important3("[get_contract_func inside exec] contract name {}\t func_name {}\t import_path {}".format(contract_name, func_name, import_path))
         Assert.valid_import_path(import_path)
         code_str = ''
         try:
@@ -146,6 +158,7 @@ class Executor:
             code_str = Plugins.assert_stamps(code_str)
         code_str = Plugins.import_module(code_str, contract_name, func_name)
         code_obj = compile(code_str, import_path, 'exec')
+        log.important3("[get_contract_func inside exec end of get_contract]\ncode str {}\ncontract name: {}\nfunc name: {}".format(code_str, contract_name, func_name))
         return code_obj, author
 
     def execute(self, code_obj, scope={}):
@@ -176,6 +189,7 @@ class Executor:
         return resource
 
     def execute_function(self, contract_name, func_name, sender, stamps=0, kwargs={}):
+        log.important("executing function {} {} {} {}".format(contract_name, func_name, sender, kwargs))
         Parser.parser_scope.update({
             'rt': {
                 'sender': sender,
@@ -235,6 +249,7 @@ class Executor:
         }
 
     def publish_code_str(self, contract_name, author, code_str):
+        log.important("\n\npublishing code string {}\n\n".format(code_str))
         return self.execute_function('smart_contract', 'submit_contract', author,
                                      kwargs={
                                          'contract_name': contract_name,

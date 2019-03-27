@@ -2,6 +2,7 @@ import os
 from os.path import join, exists, isdir, basename
 from importlib.abc import Loader, MetaPathFinder
 from importlib.util import spec_from_file_location
+from seneca.engine.interpreter.code_modifier import CodeModifier
 from seneca.engine.interpreter.parser import Parser
 from seneca.constants.config import SENECA_SC_PATH
 
@@ -48,8 +49,11 @@ class SenecaLoader(Loader):
         self.contract_name = basename(filename).split('.')[0]
         with open(self.filename) as f:
             compile_obj = f.read()
+            # raghu - not sure about this logic - whether file has compiled objects or only code_str
             if self.filename.endswith('.sen.py'):
-                compile_obj = Parser.parse_ast(compile_obj)
+                codeMod = CodeModifier('_sf')
+                modified_code = codeMod.transform(compile_obj, self.contract_name)
+                compile_obj = Parser.parse_ast(modified_code)
             self.code_obj = compile(compile_obj, filename=self.filename, mode="exec")
 
     def exec_module(self, module):

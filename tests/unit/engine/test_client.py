@@ -1,4 +1,3 @@
-from tests.utils import TestExecutor
 from unittest import mock, TestCase
 from seneca.engine.client import *
 from seneca.engine.interpreter.parser import Parser
@@ -34,7 +33,7 @@ MINT_WALLETS = {
 TEST_CONTRACT = \
 """
 from seneca.libs.storage.datatypes import Hash
-balances = Hash('balances', default_value=0)
+balances = Hash('oh_lord_help_us', default_value=0)
 
 @seed
 def seed():
@@ -42,6 +41,7 @@ def seed():
 
 @export
 def transfer(to, amount):
+    print("TRANSFERING FROM STUUUUUUBUUUUCKS")
     assert balances[rt['sender']] >= amount, 'sender {} has amount {} but tried to send {}'.format(rt['sender'], balances[rt['sender']], amount)
     balances[to] += amount
     balances[rt['sender']] -= amount
@@ -105,6 +105,8 @@ class TestSenecaClient(TestCase):
             if input_hash:
                 self.assertEqual(cr_data.input_hash, input_hash)
             if expected_sbb_rep:
+                log.important("sbb_rep {}".format(expected_sbb_rep))
+                log.important("cr_data {}".format(cr_data.get_subblock_rep()))
                 self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
                 # DEBUG -- TODO DELETE
                 log.important("input hash {} has sb rep {}".format(input_hash, cr_data.get_subblock_rep()))
@@ -824,15 +826,21 @@ class TestSenecaClient(TestCase):
         self._test_send_collision()
 
     @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+    def test_publish_same_proc(self):
+        p1 = Process(target=self._test_publish_and_send_collision)
+        p1.start()
+        p1.join()
+
+    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
     def test_publish_tx_then_use_that_tx_with_one_sb_builder(self):
         p1 = Process(target=self._test_publish)
-        p2 = Process(target=self._test_send_collision)
         log.info("Starting process 1...")
         p1.start()
         p1.join()
         log.info("Process 1 Finished...")
 
         log.info("Starting process 2...")
+        p2 = Process(target=self._test_send_collision)
         p2.start()
         p2.join()
         log.info("Process 2 Finished...")

@@ -1,5 +1,6 @@
 @export
 def submit_contract(contract_name, code_str):
+    print("[smart contract smart contract] SUBMITTING CODE STR {}".format(code_str))
     __executor__.concurrency = rt['concurrency']
     __executor__.metering = rt['metering']
     code_obj, resources, methods = __executor__.compile(contract_name, code_str)
